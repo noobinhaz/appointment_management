@@ -1,5 +1,4 @@
 [build]
-  publish = "dist"  # Replace with your frontend output directory if any
   functions = "netlify/functions"  # Location of your serverless functions
 
 [functions]
