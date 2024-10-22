@@ -1,3 +1,4 @@
+const { authorize } = require("./authorize");
 const { connectToMongoDB } = require("./mongodb");
 const mongoose = require("mongoose");
 
@@ -10,6 +11,7 @@ exports.handler = async (event) => {
   let response = {};
 
   try {
+    event = authorize(event);
     // Connect to MongoDB
     const client = await connectToMongoDB();
     const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
@@ -21,7 +23,7 @@ exports.handler = async (event) => {
       const status = queryParams.get("status");
       const from = queryParams.get("from");
       const to = queryParams.get("to");
-      const userId = pathParams[1]; // Assume userId is passed in path params
+      const userId = event.userId; // Assume userId is passed in path params
 
       let query = { userId };
 
@@ -46,7 +48,10 @@ exports.handler = async (event) => {
       response = appointments;
     } else if (method === "POST") {
       // Create a new appointment
-      const { title, description, date, time, userId } = JSON.parse(event.body);
+      console.log(event);
+      const { title, description, date, time } = JSON.parse(event.body);
+      const userId = event.userId;
+      console.log(userId);
       const newAppointment = {
         title,
         description,
@@ -56,10 +61,12 @@ exports.handler = async (event) => {
         status: "pending",
       };
       const result = await appointmentsCollection.insertOne(newAppointment);
-      response = result.ops[0]; // MongoDB returns the created document
+      response = result;
     } else if (method === "PUT") {
       const { title, description, date, time, status } = JSON.parse(event.body);
-      const appointmentId = new mongoose.Types.ObjectId(pathParams[1]);
+      const appointmentId = new mongoose.Types.ObjectId(
+        pathParams[pathParams.length - 1]
+      );
 
       const appointment = await appointmentsCollection.findOne({
         _id: appointmentId,
@@ -84,7 +91,10 @@ exports.handler = async (event) => {
         response = updatedAppointment;
       }
     } else if (method === "DELETE") {
-      const appointmentId = new mongoose.Types.ObjectId(pathParams[1]);
+      console.log(pathParams);
+      const appointmentId = new mongoose.Types.ObjectId(
+        pathParams[pathParams.length - 1]
+      );
 
       const appointment = await appointmentsCollection.findOne({
         _id: appointmentId,

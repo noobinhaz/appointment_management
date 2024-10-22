@@ -1,7 +1,9 @@
 const { connectToMongoDB } = require("./mongodb");
+const { authorize } = require("./authorize");
 
 exports.handler = async (event) => {
   try {
+    event = authorize(event);
     // Parse the search query from the URL parameters
     const search =
       new URLSearchParams(event.queryStringParameters).get("search") || "";
