@@ -10,6 +10,7 @@ const AppointmentSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  status: String,
 });
 
 module.exports = mongoose.model("Appointment", AppointmentSchema);

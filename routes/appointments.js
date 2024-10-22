@@ -3,7 +3,6 @@ const Appointment = require("../models/Appointment");
 const auth = require("../middleware/auth");
 const router = express.Router();
 
-// Create an appointment
 router.post("/", auth, async (req, res) => {
   const { title, description, date, time } = req.body;
   try {
@@ -13,6 +12,7 @@ router.post("/", auth, async (req, res) => {
       date,
       time,
       userId: req.userId,
+      status: "pending",
     });
     await newAppointment.save();
     res.json(newAppointment);
@@ -21,19 +21,39 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// Get appointments for the logged-in user
 router.get("/", auth, async (req, res) => {
+  const { search, status, from, to } = req.query;
+
   try {
-    const appointments = await Appointment.find({ userId: req.userId });
+    let query = { userId: req.userId };
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Filter by status (pending, accepted, rejected)
+    if (status) {
+      query.status = status;
+    }
+
+    if (from || to) {
+      query.date = {};
+      if (from) query.date.$gte = new Date(from);
+      if (to) query.date.$lte = new Date(to);
+    }
+
+    const appointments = await Appointment.find(query);
     res.json(appointments);
   } catch (error) {
     res.status(500).send("Server Error");
   }
 });
 
-// Update an appointment
 router.put("/:id", auth, async (req, res) => {
-  const { title, description, date, time } = req.body;
+  const { title, description, date, time, status } = req.body;
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment)
@@ -44,6 +64,10 @@ router.put("/:id", auth, async (req, res) => {
     appointment.date = date || appointment.date;
     appointment.time = time || appointment.time;
 
+    if (status === "accepted" || status === "rejected") {
+      appointment.status = status;
+    }
+
     await appointment.save();
     res.json(appointment);
   } catch (error) {
@@ -51,17 +75,16 @@ router.put("/:id", auth, async (req, res) => {
   }
 });
 
-// Delete an appointment
 router.delete("/:id", auth, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment)
       return res.status(404).json({ msg: "Appointment not found" });
 
-    await appointment.remove();
+    await appointment.deleteOne({ id: req.params.id });
     res.json({ msg: "Appointment removed" });
   } catch (error) {
-    res.status(500).send("Server Error");
+    res.status(500).json({ error: "Server Error" + error.message });
   }
 });
 
