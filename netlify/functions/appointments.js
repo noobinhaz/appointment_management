@@ -11,7 +11,7 @@ exports.handler = async (event) => {
   let response = {};
 
   try {
-    event = authorize(event);
+    // event = authorize(event);
     // Connect to MongoDB
     const client = await connectToMongoDB();
     const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
@@ -61,7 +61,7 @@ exports.handler = async (event) => {
       // Create a new appointment
       console.log(event);
       const { title, description, date, time } = JSON.parse(event.body);
-      const userId = event.userId;
+      const userId = event?.userId;
       console.log(userId);
       const newAppointment = {
         title,
@@ -126,8 +126,8 @@ exports.handler = async (event) => {
       statusCode,
       headers: {
         "Access-Control-Allow-Origin": "*", // Allow requests from any origin
-        "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow specific headers
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Allowed HTTP methods
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(response),
     };
