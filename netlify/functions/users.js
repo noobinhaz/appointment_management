@@ -3,6 +3,17 @@ const { authorize } = require("./authorize");
 
 exports.handler = async (event) => {
   try {
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
+          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow Authorization header
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Allow HTTP methods
+        },
+        body: JSON.stringify({ msg: "CORS preflight handled." }),
+      };
+    }
     event = authorize(event);
     // Parse the search query from the URL parameters
     const search =

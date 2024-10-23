@@ -6,6 +6,17 @@ exports.handler = async (event) => {
   const { username, password } = JSON.parse(event.body);
 
   try {
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
+          "Access-Control-Allow-Headers": "Content-Type", // Allow Authorization header
+          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
+        },
+        body: JSON.stringify({ msg: "CORS preflight handled." }),
+      };
+    }
     // Connect to MongoDB
     const client = await connectToMongoDB();
     const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
