@@ -17,6 +17,17 @@ exports.handler = async (event) => {
     const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
     const appointmentsCollection = db.collection("appointments");
 
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*", // Allow all origins
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allowed methods
+        },
+      };
+    }
+
     if (method === "GET") {
       // Handle search, status, and date filtering
       const search = queryParams.get("search") || "";
