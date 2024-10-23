@@ -113,11 +113,19 @@ exports.handler = async (event) => {
 
     return {
       statusCode,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow specific headers
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Allowed HTTP methods
+      },
       body: JSON.stringify(response),
     };
   } catch (error) {
     return {
-      statusCode: 500,
+      statusCode: error.message.startsWith("Unauthorized") ? 401 : 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
       body: JSON.stringify({ error: "Server Error: " + error.message }),
     };
   }
