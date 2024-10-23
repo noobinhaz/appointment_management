@@ -11,7 +11,6 @@ exports.handler = async (event) => {
   let response = {};
 
   try {
-    // event = authorize(event);
     // Connect to MongoDB
     const client = await connectToMongoDB();
     const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
@@ -21,12 +20,14 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: {
-          "Access-Control-Allow-Origin": "*", // Allow all origins
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
-          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allowed methods
+          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
+          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow Authorization header
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Allow HTTP methods
         },
+        body: JSON.stringify({ msg: "CORS preflight handled." }),
       };
     }
+    event = authorize(event);
 
     if (method === "GET") {
       // Handle search, status, and date filtering
@@ -59,10 +60,9 @@ exports.handler = async (event) => {
       response = appointments;
     } else if (method === "POST") {
       // Create a new appointment
-      console.log(event);
+
       const { title, description, date, time } = JSON.parse(event.body);
       const userId = event?.userId;
-      console.log(userId);
       const newAppointment = {
         title,
         description,
