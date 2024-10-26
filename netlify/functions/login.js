@@ -3,36 +3,40 @@ const jwt = require("jsonwebtoken");
 const { connectToMongoDB } = require("./mongodb");
 
 exports.handler = async (event) => {
+  // Define CORS headers
   const headers = {
-    "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
-    "Access-Control-Allow-Headers": "Content-Type", // Allow specific headers
-    "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
+    "Access-Control-Allow-Origin": "*", // Replace '*' with your domain for better security
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Content-Type": "application/json",
   };
-  if (event?.body == undefined) {
+
+  // Handle OPTIONS preflight request
+  if (event.httpMethod === "OPTIONS") {
     return {
-      statusCode: 400,
-      headers: headers,
-      body: JSON.stringify({ msg: "Invalid credentials" }),
+      statusCode: 204,
+      headers,
     };
   }
+
+  // Check if body exists for POST requests
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ msg: "Invalid request: Missing body" }),
+    };
+  }
+
   const { username, password } = JSON.parse(event.body);
 
-  try {
-    if (event.httpMethod === "OPTIONS") {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
-          "Access-Control-Allow-Headers": "Content-Type", // Allow Authorization header
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Allow HTTP methods
-        },
-        body: JSON.stringify({ msg: "CORS preflight handled." }),
-      };
-    }
+  console.log(username, password);
 
+  try {
     if (event.httpMethod === "POST") {
+      // Connect to MongoDB
       const client = await connectToMongoDB();
-      const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
+      const db = client.db(process.env.DATABASE_NAME);
       const usersCollection = db.collection("users");
 
       // Find the user
@@ -40,58 +44,39 @@ exports.handler = async (event) => {
       if (!user) {
         return {
           statusCode: 400,
-          headers: {
-            "Access-Control-Allow-Origin": "*", // Allow requests from any origin
-            "Access-Control-Allow-Headers": "Content-Type", // Allow specific headers
-            "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-          },
+          headers,
           body: JSON.stringify({ msg: "Invalid credentials" }),
         };
       }
 
-      // Check password match
+      // Check password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return {
           statusCode: 400,
-          headers: {
-            "Access-Control-Allow-Origin": "*", // Allow requests from any origin
-            "Access-Control-Allow-Headers": "Content-Type", // Allow specific headers
-            "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-          },
+          headers,
           body: JSON.stringify({ msg: "Invalid credentials" }),
         };
       }
 
-      // Create a JWT token
+      // Generate JWT token
       const payload = { userId: user._id };
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
 
-      // Return the token
+      // Return token
       return {
         statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*", // Allow requests from any origin
-          "Access-Control-Allow-Headers": "Content-Type", // Allow specific headers
-          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-          "Content-Type": "application/json", // Ensure JSON response type
-        },
+        headers,
         body: JSON.stringify({ token }),
       };
     }
-
-    // Connect to MongoDB
   } catch (error) {
     return {
       statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
-        "Access-Control-Allow-Headers": "Content-Type", // Allow specific headers
-        "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-      },
-      body: JSON.stringify({ error: error?.message }),
+      headers,
+      body: JSON.stringify({ error: `Server Error: ${error.message}` }),
     };
   }
 };

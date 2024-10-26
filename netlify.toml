@@ -3,3 +3,10 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[headers]]
+for = "/.netlify/functions/login"
+[headers.values]
+  Access-Control-Allow-Origin = "https://your-frontend-app.com"
+  Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+  Access-Control-Allow-Headers = "Content-Type, Authorization"

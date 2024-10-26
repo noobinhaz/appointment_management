@@ -3,32 +3,32 @@ const jwt = require("jsonwebtoken");
 const { connectToMongoDB } = require("./mongodb"); // Import MongoDB connection utility
 
 exports.handler = async (event) => {
-  const { username, password } = JSON.parse(event.body);
+  const headers = {
+    "Access-Control-Allow-Origin": "*", // Replace '*' with your domain for better security
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Content-Type": "application/json",
+  };
+
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers,
+    };
+  }
 
   try {
-    // Connect to MongoDB
-    if (event.httpMethod === "OPTIONS") {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
-          "Access-Control-Allow-Headers": "Content-Type", // Allow Authorization header
-          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-        },
-        body: JSON.stringify({ msg: "CORS preflight handled." }),
-      };
-    }
-
     if (event.httpMethod === "POST") {
+      const { username, password } = JSON.parse(event.body);
       const client = await connectToMongoDB();
       const db = client.db(process.env.DATABASE_NAME); // Replace with your actual database name
       const usersCollection = db.collection("users");
 
-      // Check if the user already exists
       let user = await usersCollection.findOne({ username });
       if (user) {
         return {
           statusCode: 400,
+          headers,
           body: JSON.stringify({ msg: "User already exists" }),
         };
       }
@@ -37,32 +37,24 @@ exports.handler = async (event) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = { username, password: hashedPassword };
       await usersCollection.insertOne(newUser);
-
+      console.log("password hashed");
       // Create a JWT token
       const payload = { userId: newUser._id };
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
-
+      console.log("pucking payload");
       // Return the token
       return {
         statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
-          "Access-Control-Allow-Headers": "Content-Type", // Allow Authorization header
-          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-        },
+        headers,
         body: JSON.stringify({ token }),
       };
     }
   } catch (error) {
     return {
       statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*", // Update '*' to the specific domain if needed
-        "Access-Control-Allow-Headers": "Content-Type", // Allow Authorization header
-        "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow HTTP methods
-      },
+      headers,
       body: JSON.stringify({ error: "Server Error" }),
     };
   }
